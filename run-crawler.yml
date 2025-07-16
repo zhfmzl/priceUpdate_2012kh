@@ -1,0 +1,41 @@
+name: Run Playwright Crawler Daily
+
+on:
+  schedule:
+    - cron: "30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: crawler-schedule
+  cancel-in-progress: true
+
+jobs:
+  run-crawler:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Playwright
+        run: npx playwright install
+
+      - name: Run crawler
+        env:
+          MONGODB_URL: ${{ secrets.MONGODB_URL }}
+        run: node crawler.js
